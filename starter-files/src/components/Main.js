@@ -1,7 +1,7 @@
 import React from 'react';
 import Header from './Header';
-import Loader from './Loader';
 import Results from './Results';
+import Search from './Search';
 
 // research difference between static and instance method
 
@@ -12,14 +12,21 @@ class Main extends React.Component {
 		super();
 		this.state = {
 			numBeers: 10,
-			beers: []
+			beers: [],
+			loading: true
 		}
 	}
 
 	componentWillMount() {
+    const params = this.props.match.params || {};
 		// when the main component is about to be put on the page, do this
-		this.loadBeers();
+		const searchTerm = params.searchTerm || undefined;
+    this.loadBeers(searchTerm);
 	}
+
+	componentWillReceiveProps(nextProps) {
+    this.loadBeers(nextProps.match.params.searchTerm);
+  }
 
 	// workaround so properties will be bound to instances
 	// = () => : gives us access to this objects (in es8)
@@ -37,13 +44,19 @@ class Main extends React.Component {
 	// => doesn't mess with the value of this
 	// essentially a property called loadBeers that is set to a value of this
 	loadBeers = (searchTerm = 'hops') => {
+		// set loader
+		this.setState({ loading: true });
+
 		// fetch doesn't default to json, so we have to convert it's raw to json
 		fetch(`http://api.react.beer/v2/search?q=${searchTerm}&type=beer`)
 			.then(data => data.json())
 			.then(beers => {
 				// filter takes an array and allows you to filter it down
 				const filteredBeers = beers.data.filter(beer => beer.labels);
-				this.setState({ beers: filteredBeers });
+				this.setState({
+					beers: filteredBeers,
+					loading: false // once the beers are back, setState loading false
+				});
 			})
 	}
 
@@ -64,7 +77,8 @@ class Main extends React.Component {
 				<button onClick={this.incrementBeers}>
 					{this.state.numBeers}
 				</button>
-				<Results {...this.state} />
+				<Search />
+				<Results beers={this.state.beers} loading={this.state.loading} />
 			</div>
 		)
 	}
